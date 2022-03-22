@@ -19,6 +19,7 @@ struct Box
 
 struct Link
 {
+	Box *b;
 	Rectangle r;
 	char text[255];
 };
@@ -85,6 +86,7 @@ renderbox(Definition *d)
 			inlink = 1;
 			break;
 		case '}':
+			links[nlinks].b = b;
 			links[nlinks].r = Rpt(lp, addpt(p, Pt(0, font->height)));
 			links[nlinks].text[cl] = '\0';
 			nlinks += 1;
@@ -120,6 +122,8 @@ layout(void)
 		totalh += Dy(b->r) + Padding;
 	}
 	scrollsize = 10*totalh/100.0;
+	for(i = 0; i < nlinks; i++)
+		links[i].r = rectaddpt(links[i].r, links[i].b->sr.min);
 }
 
 void
@@ -141,6 +145,7 @@ dviewset(Dvec *d)
 		}
 		free(defs);
 	}
+	offset = 0;
 	nlinks = 0;
 	defs = d;
 	nboxes = dvlen(defs);
@@ -224,7 +229,7 @@ clicklink(Point p)
 {
 	int i;
 
-	p = subpt(p, addpt(boxr.min, Pt(0, offset)));
+	p = addpt(p, Pt(0, offset));
 	for(i = 0; i < nlinks; i++){
 		if(ptinrect(p, links[i].r)){
 			nbsendp(chan, strdup(links[i].text));
