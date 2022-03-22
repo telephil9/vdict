@@ -101,7 +101,7 @@ initcolors(void)
 
 	cols = emalloc(sizeof *cols);
 	theme = loadtheme();
-	if(theme == nil){
+	if(theme != nil){
 		cols->back  = theme->back;
 		cols->text  = theme->text;
 		cols->focus = theme->title;
