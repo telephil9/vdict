@@ -149,6 +149,7 @@ showdb(Dictc *c)
 		p += 2; /* skip <space>" */
 		p[strlen(p) - 2] = 0; /* remove "\r */
 		e->desc = strdup(p);
+		p -= 2;
 		*p = '\0';
 		e->name = strdup(s);
 		dvadd(c->db, e);
@@ -190,6 +191,7 @@ showstrat(Dictc *c)
 		p += 2; /* skip <space>" */
 		p[strlen(p) - 2] = 0; /* remove "\r */
 		e->desc = strdup(p);
+		p -= 2;
 		*p = '\0';
 		e->name = strdup(s);
 		dvadd(c->strat, e);
@@ -317,7 +319,7 @@ dictdefine(Dictc* c, char *db, char *word)
 	Dvec *v;
 	Response r;
 	Definition *d;
-	char buf[1024];
+	char buf[1024] = {0};
 	int rc, n, i;
 
 	snprint(buf, sizeof buf, "DEFINE %s \"%s\"", db, word);
