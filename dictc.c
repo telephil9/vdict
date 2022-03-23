@@ -246,11 +246,25 @@ dictquit(Dictc *c)
 	freedictc(c);
 }
 
+char*
+dbdesc(Dictc *c, char *db)
+{
+	Element *e;
+	int i;
+
+	for(i = 0; i < dvlen(c->db); i++){
+		e = dvref(c->db, i);
+		if(strcmp(e->name, db) == 0)
+			return e->desc;
+	}
+	return nil;
+}
+
 Definition*
 parsedefinition(Dictc *c)
 {
 	Definition *d;
-	char *s;
+	char *s, *p, *q, *src;
 	String *sb;
 	int n;
 
@@ -260,11 +274,19 @@ parsedefinition(Dictc *c)
 		return nil;
 	}
 	n = readstatus(s);
-	free(s);
 	if(n != 151){
 		werrstr(Errors[Eunexpected]);
 		return nil;
 	}
+	src = nil;
+	p = strchr(s+5, '"'); /* skip NNN<space>" */
+	if(p != nil){
+		p += 2;
+		q = strchr(p, ' ');
+		*q = '\0';
+		src = dbdesc(c, p);
+	}
+	free(s);
 	sb = s_newalloc(255);
 	for(;;){
 		s = Brdstr(c->bin, '\n', 1);
@@ -283,6 +305,7 @@ parsedefinition(Dictc *c)
 	}
 	s_terminate(sb);
 	d = emalloc(sizeof *d);
+	d->db   = src;
 	d->text = strdup(s_to_c(sb));
 	s_free(sb);
 	return d;
