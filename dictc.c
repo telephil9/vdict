@@ -27,16 +27,14 @@ enum
 	Eeof,
 	Eunexpected,
 	Ebadformat,
-	Enodb,
-	Enostrat,
+	Enoshow,
 };
 
 const char* Errors[] = {
 	[Eeof]        = "no response from server",
 	[Eunexpected] = "unexpected response from server",
 	[Ebadformat]  = "bad response format",
-	[Enodb]       = "server does not have any database",
-	[Enostrat]    = "server doest not have any strategy",
+	[Enoshow]     = "show command did not return any result",
 };
 
 Dvec*
@@ -120,31 +118,43 @@ sendcmd(Dictc *c, const char *cmd, Response *r)
 	return Eok;
 }
 
-int
-showdb(Dictc *c)
+Dvec*
+show(Dictc *c, char *cmd, int ok, int ko, int *err)
 {
 	Response r;
 	Element *e;
+	Dvec *v;
 	char *s, *p;
 	int rc, n, i;
 
-	rc = sendcmd(c, "SHOW DB", &r);
-	if(rc != Eok)
-		return rc;
-	if(r.code == 554)
-		return Enodb;
-	else if(r.code != 110)
-		return Eunexpected;
+	rc = sendcmd(c, cmd, &r);
+	if(rc != Eok){
+		*err = rc;
+		return nil;
+	}
+	if(r.code == ko){
+		*err = Enoshow;
+		return nil;
+	}else if(r.code != ok){
+		*err = Eunexpected;
+		return nil;
+	}
 	n = readstatus(r.msg);
 	free(r.msg);
-	c->db = mkdvec(n);
+	v = mkdvec(n);
 	for(i = 0; i < n; i++){
 		s = Brdstr(c->bin, '\n', 1);
-		if(s == nil)
-			return Eeof;
+		if(s == nil){
+			*err = Eeof;
+			free(v); /* FIXME: free elts */
+			return nil;
+		}
 		p = strchr(s, ' ');
-		if(p == nil)
-			return Ebadformat;
+		if(p == nil){
+			*err = Ebadformat;
+			free(v); /* FIXME: free elts */
+			return nil;
+		}
 		e = emalloc(sizeof(Element));
 		p += 2; /* skip <space>" */
 		p[strlen(p) - 2] = 0; /* remove "\r */
@@ -152,56 +162,21 @@ showdb(Dictc *c)
 		p -= 2;
 		*p = '\0';
 		e->name = strdup(s);
-		dvadd(c->db, e);
+		dvadd(v, e);
 		free(s);
 	}
-	if((n = expectline(c, ".")) != Eok)
-		return n;
-	if((n = expectline(c, "250 ok")) != Eok)
-		return n;
-	return Eok;
-}
-
-int
-showstrat(Dictc *c)
-{
-	Response r;
-	Element *e;
-	char *s, *p;
-	int rc, n, i;
-
-	rc = sendcmd(c, "SHOW STRAT", &r);
-	if(rc != Eok)
-		return rc;
-	if(r.code == 555)
-		return Enostrat;
-	else if(r.code != 111)
-		return Eunexpected;
-	n = readstatus(r.msg);
-	free(r.msg);
-	c->strat = mkdvec(n);
-	for(i = 0; i < n; i++){
-		s = Brdstr(c->bin, '\n', 1);
-		if(s == nil)
-			return Eeof;
-		p = strchr(s, ' ');
-		if(p == nil)
-			return Ebadformat;
-		e = emalloc(sizeof(Element));
-		p += 2; /* skip <space>" */
-		p[strlen(p) - 2] = 0; /* remove "\r */
-		e->desc = strdup(p);
-		p -= 2;
-		*p = '\0';
-		e->name = strdup(s);
-		dvadd(c->strat, e);
-		free(s);
+	if((n = expectline(c, ".")) != Eok){
+		*err = n;
+		free(v); /* FIXME: free elts */
+		return nil; 
 	}
-	if((n = expectline(c, ".")) != Eok)
-		return n;
-	if((n = expectline(c, "250 ok")) != Eok)
-		return n;
-	return Eok;
+	if((n = expectline(c, "250 ok")) != Eok){
+		*err = n;
+		free(v); /* FIXME: free elts */
+		return nil; 
+	}
+	*err = Eok;
+	return v;
 }
 
 void
@@ -249,13 +224,13 @@ dictdial(const char *addr, int port)
 		freedictc(c);
 		return nil;
 	}
-	n = showdb(c);
+	c->db = show(c, "SHOW DB", 110, 554, &n);
 	if(n != Eok){
 		werrstr(Errors[n]);
 		freedictc(c);
 		return nil;
 	}
-	n = showstrat(c);
+	c->strat = show(c, "SHOW STRAT", 111, 555, &n);
 	if(n != Eok){
 		werrstr(Errors[n]);
 		freedictc(c);
