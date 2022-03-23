@@ -52,6 +52,7 @@ renderbox(Definition *d)
 	int i, l, n, w, mw, inlink, cl;
 	Point p, lp;
 	Image *c;
+	char buf[1024] = {0};
 
 	n = 0;
 	w = 0;
@@ -67,8 +68,12 @@ renderbox(Definition *d)
 			w += stringnwidth(font, d->text+i, 1);
 		}
 	}
+	snprint(buf, sizeof buf, "From %s", d->db);
+	w = stringwidth(font, buf);
+	if(w > mw)
+		mw = w;
 	b = emalloc(sizeof *b);
-	b->r = Rect(0, 0, Padding + mw + Padding, Padding+(n+1)*font->height+Padding);
+	b->r = Rect(0, 0, Padding + mw + Padding, Padding+(n+2)*font->height+2*Padding);
 	b->b = allocimage(display, b->r, screen->chan, 0, DNofill);
 	draw(b->b, b->r, cols->back, nil, ZP);
 	p = Pt(Padding, Padding);
@@ -103,6 +108,9 @@ renderbox(Definition *d)
 			break;
 		}
 	}
+	p.x = Padding;
+	p.y += Padding;
+	string(b->b, p, cols->scrl, ZP, font, buf);
 	return b;
 }
 
