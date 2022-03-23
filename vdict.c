@@ -16,6 +16,7 @@ Cols *cols;
 Rectangle searchr;
 Rectangle entryr;
 Rectangle viewr;
+char *db;
 
 enum
 {
@@ -32,9 +33,47 @@ redraw(void)
 	flushimage(display, 1);
 }
 
+char*
+dictmenu(int index)
+{
+	Element *e;
+
+	if(index < 0 || index >= dvlen(dict->db) + 2)
+		return nil;
+	if(index == 0)
+		return "First matching result";
+	else if(index == 1)
+		return "All matching results";
+	e = dvref(dict->db, index - 2);
+	return e->desc;
+}
+
 void
 emouse(Mouse m)
 {
+	Menu menu;
+	Element *e;
+	int n;
+
+	if(ptinrect(m.xy, viewr) && m.buttons == 2){
+		menu.gen = dictmenu;
+		n = menuhit(2, mc, &menu, nil);
+		if(n < 0)
+			return;
+		switch(n){
+		case 0:
+			db = Dfirstmatch;
+			break;
+		case 1:
+			db = Dallmatches;
+			break;
+		default:
+			e = dvref(dict->db, n - 2);
+			db = e->name;
+			break;
+		}
+		return;
+	}
 	entrymouse(entry, m);
 	dviewmouse(m);
 }
@@ -80,7 +119,9 @@ esearch(char *s)
 {
 	Dvec *v;
 
-	v = dictdefine(dict, Dfirstmatch, s);
+	v = dictdefine(dict, db, s);
+	if(v == nil)
+		sysfatal("dictdefine: %r");
 	dviewset(v);
 	dviewredraw();
 	flushimage(display, 1);
@@ -153,6 +194,7 @@ threadmain(int argc, char *argv[])
 	}ARGEND;
 	if(host == nil)
 		usage();
+	db = Dfirstmatch;
 	dict = dictdial(host, port);
 	if(dict == nil)
 		sysfatal("initdict: %r");
