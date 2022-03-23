@@ -178,6 +178,10 @@ dviewredraw(void)
 	}else
 		scrposr = insetrect(scrollr, -1);
 	draw(screen, scrposr, cols->back, nil, ZP);
+	if(boxes != nil && nboxes == 0){
+		string(screen, addpt(sr.min, Pt(Padding, Padding)), cols->text, ZP, font, "No result found.");
+		return;
+	}
 	replclipr(screen, 0, boxr);
 	vmin = boxr.min.y + offset;
 	vmax = boxr.max.y + offset;
