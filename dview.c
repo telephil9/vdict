@@ -53,6 +53,7 @@ renderbox(Definition *d)
 	Point p, lp;
 	Image *c;
 	char buf[1024] = {0};
+	Rune r;
 
 	n = 0;
 	w = 0;
@@ -79,16 +80,18 @@ renderbox(Definition *d)
 	p = Pt(Padding, Padding);
 	inlink = 0;
 	cl = 0;
-	for(i = 0; i < l; i++){
+	for(i = 0; i < l; ){
 		switch(d->text[i]){
 		case '\n':
 			p.x = Padding;
 			p.y += font->height;
+			++i;
 			break;
 		case '{':
 			cl = 0;
 			lp = p;
 			inlink = 1;
+			++i;
 			break;
 		case '}':
 			links[nlinks].b = b;
@@ -97,6 +100,7 @@ renderbox(Definition *d)
 			nlinks += 1;
 			cl = 0;
 			inlink = 0;
+			++i;
 			break;
 		default:
 			c = cols->text;
@@ -104,7 +108,8 @@ renderbox(Definition *d)
 				c = cols->focus;
 				links[nlinks].text[cl++] = d->text[i];
 			}
-			p = stringn(b->b, p, c, ZP, font, d->text + i, 1);
+			i += chartorune(&r, d->text + i);
+			p = runestringn(b->b, p, c, ZP, font, &r, 1);
 			break;
 		}
 	}
