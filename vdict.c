@@ -6,7 +6,6 @@
 #include <mouse.h>
 #include <keyboard.h>
 #include "a.h"
-#include "theme.h"
 
 Dictc *dict;
 Mousectl *mc;
@@ -136,18 +135,15 @@ elink(char *s)
 }
 
 void
-initcolors(void)
+initcolors(int reverse)
 {
-	Theme *theme;
-
 	cols = emalloc(sizeof *cols);
-	theme = loadtheme();
-	if(theme != nil){
-		cols->back  = theme->back;
-		cols->text  = theme->text;
-		cols->focus = theme->title;
-		cols->sel   = theme->border;
-		cols->scrl  = theme->border;
+	if(reverse){
+		cols->back  = display->black;
+		cols->text  = display->white;
+		cols->focus = allocimage(display, Rect(0, 0, 1, 1), RGBA32, 1, DPurpleblue);
+		cols->sel   = allocimage(display, Rect(0, 0, 1, 1), RGBA32, 1, DPurpleblue);
+		cols->scrl  = allocimage(display, Rect(0, 0, 1, 1), RGBA32, 1, 0x999999FF^reverse);
 	}else{
 		cols->back  = display->white;
 		cols->text  = display->black;
@@ -160,7 +156,7 @@ initcolors(void)
 void
 usage(void)
 {
-	fprint(2, "usage: %s -h <host> [-p <port>]\n", argv0);
+	fprint(2, "usage: %s [-b] -h <host> [-p <port>]\n", argv0);
 	exits("usage");
 }
 
@@ -171,7 +167,7 @@ threadmain(int argc, char *argv[])
 	Mouse m;
 	Rune k;
 	char *s, *l, *host;
-	int port;
+	int port, reverse;
 	Channel *lchan;
 	Alt a[] = {
 		{ nil, &m,  CHANRCV },
@@ -184,7 +180,11 @@ threadmain(int argc, char *argv[])
 
 	host = nil;
 	port = 2628;
+	reverse = 0;
 	ARGBEGIN{
+	case 'b':
+		reverse = ~0xFF;
+		break;
 	case 'h':
 		host = EARGF(usage());
 		break;
@@ -205,7 +205,7 @@ threadmain(int argc, char *argv[])
 		sysfatal("initmouse: %r");
 	if((kc = initkeyboard(nil)) == nil)
 		sysfatal("initkeyboard: %r");
-	initcolors();
+	initcolors(reverse);
 	entry = emalloc(sizeof *entry);
 	entryinit(entry, cols);
 	lchan = chancreate(sizeof(char*), 1);
