@@ -156,7 +156,7 @@ initcolors(int reverse)
 void
 usage(void)
 {
-	fprint(2, "usage: %s [-b] [-h <host>] [-p <port>]\n", argv0);
+	fprint(2, "usage: %s [-b] [-h <host>] [-p <port>] [<search>]\n", argv0);
 	exits("usage");
 }
 
@@ -217,6 +217,8 @@ threadmain(int argc, char *argv[])
 	a[Elink].c = lchan;
 	eresize();
 	entryfocus(entry, 0);
+	if(argc != 0)
+		elink(*argv);
 	for(;;){
 		switch(alt(a)){
 		case Emouse:
