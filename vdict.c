@@ -156,7 +156,7 @@ initcolors(int reverse)
 void
 usage(void)
 {
-	fprint(2, "usage: %s [-b] -h <host> [-p <port>]\n", argv0);
+	fprint(2, "usage: %s [-b] [-h <host>] [-p <port>]\n", argv0);
 	exits("usage");
 }
 
@@ -178,7 +178,7 @@ threadmain(int argc, char *argv[])
 		{ nil, nil, CHANEND },
 	};
 
-	host = nil;
+	host = "dict.org";
 	port = 2628;
 	reverse = 0;
 	ARGBEGIN{
